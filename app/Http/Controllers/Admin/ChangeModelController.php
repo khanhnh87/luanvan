@@ -16,7 +16,7 @@ class ChangeModelController extends Controller
     public function index()
     {
         abort_if(Gate::denies('change_model_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-        $files = Storage::disk('public')->allFiles('files');
+        $files = Storage::disk('public')->allFiles('models');
         return view('admin.changeModels.index', compact('files'));
     }
 
@@ -26,15 +26,15 @@ class ChangeModelController extends Controller
             'files' => 'required',
         ]);
         if ($request->hasfile('files')) {
-            $files =   Storage::allFiles('public/files');
+            $files =   Storage::allFiles('public/models');
 
             // Delete old Files
             Storage::delete($files);
 
 
             foreach ($request->file('files') as $key => $file) {
-                $path = $file->store('public/files');
                 $name = $file->getClientOriginalName();
+                $path = $file->storeAs('public/models', $name);
             }
         }
         return redirect()->route('admin.change-models.index');

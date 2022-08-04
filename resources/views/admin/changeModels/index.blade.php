@@ -11,7 +11,7 @@
                 <ul>
                     @foreach ($files as $file)
                         <li><a href="{{ asset('storage/' . $file) }}"
-                                target="_blank">{{ str_replace('files/', '', $file) }}</a></li>
+                                target="_blank">{{ str_replace('models/', '', $file) }}</a></li>
                     @endforeach
 
                 </ul>

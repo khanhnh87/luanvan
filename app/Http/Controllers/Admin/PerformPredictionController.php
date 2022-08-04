@@ -16,9 +16,10 @@ class PerformPredictionController extends Controller
     public function index()
     {
         abort_if(Gate::denies('perform_prediction_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-
-        $performPredictions = PerformPrediction::with(['created_by'])->get();
-
+        $performPredictions = PerformPrediction::with(['created_by'])->where('created_by_id', auth()->user()->id)->get();
+        if (auth()->user()->isAdministrator()) {
+            $performPredictions = PerformPrediction::with(['created_by'])->get();
+        }
         return view('admin.performPredictions.index', compact('performPredictions'));
     }
 

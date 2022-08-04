@@ -1,4 +1,26 @@
 @extends('layouts.admin')
+@section('styles')
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background: rgba(255, 255, 255, .8) url('http://i.stack.imgur.com/FhHRx.gif') 50% 50% no-repeat;
+        }
+
+        body.loading .modal {
+            overflow: hidden;
+        }
+
+        body.loading .modal {
+            display: block;
+        }
+    </style>
+@endsection
 @section('content')
     <div class="card">
         <div class="card-header">
@@ -18,8 +40,8 @@
                 </div>
             </form>
             <div class="form-group">
-                <img id="preview-image-before-upload" src="http://via.placeholder.com/100x60" alt="preview image"
-                    style="max-height: 250px;">
+                <img id="preview-image-before-upload" src="http://via.placeholder.com/512x512" alt="preview image"
+                    width="512" height="512">
                 <span class="help-block"> </span>
             </div>
 
@@ -59,6 +81,7 @@
                                 {{ old('kqdd', '') === (string) $key ? 'selected' : '' }}>{{ $label }}</option>
                         @endforeach
                     </select>
+                    <p class="text-success" id="ConfidenceScore"></p>
                     @if ($errors->has('kqdd'))
                         <div class="invalid-feedback">
                             {{ $errors->first('kqdd') }}
@@ -92,9 +115,34 @@
             </form>
         </div>
     </div>
+    <div class="modal"></div>
 @endsection
 @section('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
     <script type="text/javascript">
+        async function predict() {
+            var imageName = "preview-image-before-upload";
+            const model = await tf.loadLayersModel("{{ asset('storage/models/model.json') }}");
+            var example = tf.browser.fromPixels(document.getElementById(imageName)).mean(2); // for example
+            example = example.reshape([1, 512, 512, 1]);
+            const output = model.predict(example);
+            const axis = 1;
+            const predictions = Array.from(output.dataSync());
+            console.log(predictions[0]);
+            var tmpRate = predictions[0] * 100;
+            var rate = null;
+            if (tmpRate < 50) {
+                $("#kqdd").val(0).change();
+                rate = 100 - tmpRate;
+            } else {
+                $("#kqdd").val(1).change();
+                rate = tmpRate;
+            }
+            $("body").removeClass("loading");
+            $('.submit-button').prop("disabled", false);
+            document.getElementById('ConfidenceScore').innerHTML = 'Tỉ lệ tin cậy: ~' + rate.toString().substring(0,
+                5) + '%';
+        }
         $(document).ready(function(e) {
             $('#kqdd').css('pointer-events', 'none');
             $.ajaxSetup({
@@ -103,6 +151,7 @@
                 }
             });
             $('#image').change(function() {
+                $("body").addClass("loading");
                 let reader = new FileReader();
                 reader.onload = (e) => {
                     $('#preview-image-before-upload').attr('src', e.target.result);
@@ -111,6 +160,7 @@
                 $('#image-upload').submit();
             });
             $('#image-upload').submit(function(e) {
+
                 e.preventDefault();
                 var formData = new FormData(this);
                 $.ajax({
@@ -123,13 +173,13 @@
                     success: (data) => {
                         this.reset();
                         $("#hinh_anh").val(data);
-                        $("#kqdd").val(1).change();
-                        $('.submit-button').prop("disabled", false);
+                        predict();
                     },
                     error: function(data) {
                         console.log(data);
                     }
                 });
+
             });
         });
     </script>
